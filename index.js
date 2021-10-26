@@ -3,7 +3,7 @@ const app = express()
 const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
-const { response } = require('express')
+const { count } = require('./models/person')
 require('dotenv').config()
 
 app.use(cors())
@@ -15,6 +15,12 @@ app.use(morgan('tiny'))
 morgan.token('body', req => { return JSON.stringify(req.body) })
 app.use(morgan(':method :url :body'))
 
+//Address doens't exist
+const unknownEndpoint = (error, request, response, next) => {
+    response.status(404).send({ error: 'address doesn`t exist' })
+    next(error)
+}
+
 // Get all persons
 app.get('/api/persons', (req, res) => {
     Person.find({}).then(persons => {
@@ -23,34 +29,43 @@ app.get('/api/persons', (req, res) => {
 })
 
 // Info page
-app.get('/info', (req, res) => {
+app.get('/info', (req, res, next) => {
     const time = new Date()
-    const many = persons.length
-    res.send(`<p>Phonebook has info for ${many} people</p><p>${time}</p>`)
+    const test = Person.find({}).then(data => res.send(`<p>Phonebook has info for ${data.length} people</p><p>${time}</p>`)).catch(error => next(error))
 })
 
 // show one person from list
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
 
-    Person.findById(req.params.id).then(person => {
-        res.json(person)
-    })
-
-    if (Person) {
-        res.json(Person)
-    } else {
-        res.status(404).end()
-    }
+    Person.findById(req.params.id)
+        .then(person => {
+            if (person) {
+                res.json(person)
+            } else {
+                res.status(404).end()
+            }
+        })
+        .catch(error => next(error))
 })
 
-// delete person from list
-app.delete('/api/persons/:id', (req, res) => {
+app.use(unknownEndpoint)
 
-    if (persons.length !== 0) {
-        res.status(204).end()
-    } else {
-        res.status(404).end()
+const errorHandler = (error, request, response, next) => {
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'Error occured while trying to delete or post persons' })
     }
+
+    next(error)
+}
+
+// delete person from list
+app.delete('/api/persons/:id', (req, res, next) => {
+
+    Person.findByIdAndRemove(req.params.id)
+        .then(result => {
+            res.status(204).end()
+        })
+        .catch(error => next(error))
 })
 
 const generateId = () => {
@@ -59,7 +74,7 @@ const generateId = () => {
 }
 
 // Add new person to list
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body
 
     if (!body.number) {
@@ -82,6 +97,25 @@ app.post('/api/persons', (req, res) => {
         res.json(savedPerson)
     })
 })
+
+app.put('/api/persons/:id', (req, res, next) => {
+
+    const body = req.body
+
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+
+    Person.findByIdAndUpdate(req.params.id, person, { new: true })
+        .then(updatedPerson => {
+            res.json(updatedPerson)
+        })
+        .catch(error => next(error))
+
+})
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
