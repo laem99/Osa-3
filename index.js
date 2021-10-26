@@ -3,6 +3,7 @@ const app = express()
 const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
+const { response } = require('express')
 require('dotenv').config()
 
 app.use(cors())
@@ -18,7 +19,6 @@ app.use(morgan(':method :url :body'))
 app.get('/api/persons', (req, res) => {
     Person.find({}).then(persons => {
         res.json(persons);
-        console.log(persons)
     })
 })
 
@@ -31,11 +31,13 @@ app.get('/info', (req, res) => {
 
 // show one person from list
 app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
 
-    if (person) {
+    Person.findById(req.params.id).then(person => {
         res.json(person)
+    })
+
+    if (Person) {
+        res.json(Person)
     } else {
         res.status(404).end()
     }
@@ -43,8 +45,6 @@ app.get('/api/persons/:id', (req, res) => {
 
 // delete person from list
 app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    persons = persons.filter(person => person.id !== id)
 
     if (persons.length !== 0) {
         res.status(204).end()
@@ -60,8 +60,6 @@ const generateId = () => {
 
 // Add new person to list
 app.post('/api/persons', (req, res) => {
-
-    const name = String(req.params.name)
     const body = req.body
 
     if (!body.number) {
@@ -72,23 +70,20 @@ app.post('/api/persons', (req, res) => {
         return res.status(400).json({
             error: 'name missing'
         })
-    } else if (body.name === name) {
-        return res.status(400).json({
-            error: 'name must be unique'
-        })
     }
 
-    const person = {
+    const person = new Person({
         name: body.name,
         number: body.number,
         id: generateId(),
-    }
+    })
 
-    persons = persons.concat(person)
-    res.json(person)
+    person.save().then(savedPerson => {
+        res.json(savedPerson)
+    })
 })
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+    console.log(`Server running on port ${PORT}`)
 })
