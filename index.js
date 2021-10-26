@@ -1,7 +1,9 @@
 const express = require('express')
 const app = express()
+const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
+require('dotenv').config()
 
 app.use(cors())
 app.use(express.static('build'))
@@ -12,32 +14,12 @@ app.use(morgan('tiny'))
 morgan.token('body', req => { return JSON.stringify(req.body) })
 app.use(morgan(':method :url :body'))
 
-let persons = [
-    {
-        "name": "Arto Hellas",
-        "number": "044-1231235",
-        "id": 1
-    },
-    {
-        "name": "Ada Lovelace",
-        "number": "39-44-5323523",
-        "id": 2
-    },
-    {
-        "name": "Dan Abramov",
-        "number": "12-43-234345",
-        "id": 3
-    },
-    {
-        "name": "Mary Poppendieck",
-        "number": "39-23-6423122",
-        "id": 4
-    }
-]
-
 // Get all persons
 app.get('/api/persons', (req, res) => {
-    res.json(persons)
+    Person.find({}).then(persons => {
+        res.json(persons);
+        console.log(persons)
+    })
 })
 
 // Info page
@@ -106,7 +88,7 @@ app.post('/api/persons', (req, res) => {
     res.json(person)
 })
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
