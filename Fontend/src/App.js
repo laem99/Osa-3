@@ -27,35 +27,33 @@ const App = () => {
       name: newName,
       number: newNum,
     };
-    if (knownPerson !== undefined) {
-      if (window.confirm(`${knownPerson.name} is already added to phonebook, replace the old number with a new one?`)) {
-        personService
-          .update(knownPerson.id, personObj)
-          .then(returnedPerson => {
-            setPersons(persons.map(person => person.id !== knownPerson.id ? person : returnedPerson))
-          })
-          .catch(error => {
-            setMessage(
-              `the note '${knownPerson.name}' was already deleted from server`
-            )
-            setPersons(persons.filter(p => p.id !== knownPerson.id))
-          })
-          setTimeout(() => {
-            setMessage(null)
-          }, 5000);
-          setMessage(`${knownPerson.name} number changed`);
-      }
-    } else {
-      personService
-        .create(personObj)
-        .then(returnedPerson => {
-          setPersons(persons.concat(returnedPerson))
-        });
-        setTimeout(() => {
-          setMessage(null)
-        }, 5000);
-        setMessage(`Added new contact ${newName}`);
-    }
+    personService
+      .create(personObj)
+      .then(createdPerson => {
+        if (knownPerson !== undefined && knownPerson.number !== newNum) {
+          if (window.confirm(`${knownPerson.name} is already added to phonebook, replace the old number with a new one?`)) {
+            personService
+              .update(knownPerson.id, personObj)
+              .then(returnedPerson => {
+                setPersons(persons.map(person => person.id !== knownPerson.id ? person : returnedPerson))
+              })
+              .catch(error => {
+                setMessage(
+                  `the note '${knownPerson.name}' was already deleted from server`
+                )
+                setPersons(persons.filter(p => p.id !== knownPerson.id))
+              })
+            setTimeout(() => {
+              setMessage(null)
+            }, 5000);
+            setMessage(`${knownPerson.name} number changed`);
+          }
+        }
+        setPersons(persons.concat(createdPerson))
+      })
+      .catch(error => {
+        setMessage(error.response.data.error)
+      })
     setNewName('');
     setNewNum('');
   }

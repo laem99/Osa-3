@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 require('dotenv').config()
+const uniqueValidator = require('mongoose-unique-validator');
 
 const url = process.env.MONGODB_URI
 
@@ -12,10 +13,12 @@ mongoose.connect(url)
         console.log('error connecting to MongoDB:', error.message)
     })
 
-const personSchema = new mongoose.Schema({
-    name: String,
-    number: Number,
+const personSchema = mongoose.Schema({
+    name: { type: String, required: true, unique: true, minLength: 3 },
+    number: { type: Number, required: true, unique: true, minLength: 8 },
 })
+
+personSchema.plugin(uniqueValidator, { message: 'Error person is already added to phonebook' });
 
 personSchema.set('toJSON', {
     transform: (document, returnedObject) => {

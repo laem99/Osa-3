@@ -3,7 +3,6 @@ const app = express()
 const Person = require('./models/person')
 const morgan = require('morgan')
 const cors = require('cors')
-const { count } = require('./models/person')
 require('dotenv').config()
 
 app.use(cors())
@@ -53,6 +52,8 @@ app.use(unknownEndpoint)
 const errorHandler = (error, request, response, next) => {
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'Error occured while trying to delete or post persons' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(409).json({ error: error.message })
     }
 
     next(error)
@@ -93,9 +94,15 @@ app.post('/api/persons', (req, res, next) => {
         id: generateId(),
     })
 
-    person.save().then(savedPerson => {
-        res.json(savedPerson)
-    })
+    person
+        .save()
+        .then(savedPerson => {
+            return savedPerson.toJSON()
+        })
+        .then(savedAndFormattedPerson => {
+            return res.json(savedAndFormattedPerson)
+        })
+        .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
