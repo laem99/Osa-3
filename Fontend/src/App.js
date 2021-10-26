@@ -50,6 +50,7 @@ const App = () => {
           }
         }
         setPersons(persons.concat(createdPerson))
+        setMessage(`${createdPerson.name} added`)
       })
       .catch(error => {
         setMessage(error.response.data.error)
